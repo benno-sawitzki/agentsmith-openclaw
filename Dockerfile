@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
 RUN npm install -g pnpm \
     && git clone --branch fix/4686-whatsapp-timeout --depth 1 https://github.com/battman21/openclaw.git /tmp/openclaw \
     && cd /tmp/openclaw && pnpm install && pnpm run build && npm install -g . \
-    && rm -rf /tmp/openclaw && npm cache clean --force
+    && cd / && rm -rf /tmp/openclaw && npm cache clean --force
 
 # /data is the Railway Volume mount point — persists across redeploys
 # Note: Railway mounts the volume at runtime as root, so build-time chown
