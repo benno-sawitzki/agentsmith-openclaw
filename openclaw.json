@@ -1,5 +1,6 @@
 {
   "gateway": {
+    "mode": "local",
     "port": "${PORT:-3000}",
     "auth": {
       "token": "${OPENCLAW_GATEWAY_TOKEN}"
