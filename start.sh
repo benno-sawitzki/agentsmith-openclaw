@@ -115,12 +115,17 @@ PROXYEOF
 
   echo "[agentsmith] proxychains4 configured: ${PC_TYPE} ${PROXY_IP}:${PROXY_PORT}"
 
-  # Quick connectivity test — first with curl native proxy, then proxychains
-  echo "[agentsmith] Testing proxy connectivity (direct)..."
-  CURL_PROXY_RESULT=$(curl -sf --max-time 15 --proxy "${PROXY_SCHEME}://${PROXY_HOST}:${PROXY_PORT}" --proxy-user "${PROXY_USER}:${PROXY_PASS}" -o /dev/null -w "%{http_code}" https://web.whatsapp.com 2>&1) || true
-  echo "[agentsmith] Direct proxy test result: ${CURL_PROXY_RESULT}"
+  # Check exit IP through the proxy
+  echo "[agentsmith] Checking proxy exit IP..."
+  EXIT_IP=$(curl -sf --max-time 10 --proxy "${PROXY_SCHEME}://${PROXY_HOST}:${PROXY_PORT}" --proxy-user "${PROXY_USER}:${PROXY_PASS}" https://ifconfig.me 2>&1) || true
+  echo "[agentsmith] Proxy exit IP: ${EXIT_IP:-FAILED}"
 
-  echo "[agentsmith] Testing proxy connectivity (proxychains)..."
+  # Test WhatsApp reachability through proxy
+  echo "[agentsmith] Testing WhatsApp reachability..."
+  WA_RESULT=$(curl -sf --max-time 10 --proxy "${PROXY_SCHEME}://${PROXY_HOST}:${PROXY_PORT}" --proxy-user "${PROXY_USER}:${PROXY_PASS}" -o /dev/null -w "%{http_code} %{time_total}s" https://web.whatsapp.com 2>&1) || true
+  echo "[agentsmith] WhatsApp via proxy: ${WA_RESULT:-FAILED}"
+
+  echo "[agentsmith] Testing proxychains..."
   if proxychains4 curl -sf --max-time 15 -o /dev/null -w "%{http_code}" https://web.whatsapp.com 2>&1; then
     echo "[agentsmith] Proxychains test OK, starting with proxychains"
     GATEWAY_CMD="proxychains4 openclaw gateway"
