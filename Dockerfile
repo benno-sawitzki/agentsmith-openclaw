@@ -3,16 +3,19 @@
 
 FROM node:22-slim AS base
 
-# Pin the OpenClaw version — bump this when you've tested a new release
-ENV OPENCLAW_VERSION=2026.2.6-3
+# Build from PR #8409 branch for WhatsApp pairing code support (issue #4686)
+# Revert to pinned release once this is merged: npm install -g openclaw@2026.2.6-3
+ENV OPENCLAW_VERSION=fix-4686
 
 # node:22-slim doesn't ship git; openclaw needs it for git-based deps
 # Rewrite SSH git URLs to HTTPS so we don't need SSH keys in the image
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates proxychains4 curl && rm -rf /var/lib/apt/lists/* \
     && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 
-# Install openclaw globally at a locked version
-RUN npm install -g openclaw@${OPENCLAW_VERSION} && npm cache clean --force
+# Build OpenClaw from PR #8409 branch (pairing code auth)
+RUN git clone --branch fix/4686-whatsapp-timeout --depth 1 https://github.com/openclaw/openclaw.git /tmp/openclaw \
+    && cd /tmp/openclaw && npm install && npm run build && npm install -g . \
+    && rm -rf /tmp/openclaw && npm cache clean --force
 
 # /data is the Railway Volume mount point — persists across redeploys
 # Note: Railway mounts the volume at runtime as root, so build-time chown
