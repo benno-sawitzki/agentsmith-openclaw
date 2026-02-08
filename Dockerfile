@@ -6,6 +6,9 @@ FROM node:22-slim AS base
 # Pin the OpenClaw version — bump this when you've tested a new release
 ENV OPENCLAW_VERSION=2026.1.30
 
+# node:22-slim doesn't ship git; openclaw needs it for git-based deps
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+
 # Install openclaw globally at a locked version
 RUN npm install -g openclaw@${OPENCLAW_VERSION} && npm cache clean --force
 
