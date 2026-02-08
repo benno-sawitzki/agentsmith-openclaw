@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+echo "[agentsmith] start.sh v3 (2026-02-08 19:45)"
+
 CONFIG_PATH="/data/.openclaw/openclaw.json"
 SOUL_PATH="/data/workspace/SOUL.md"
 ENV_PATH="/data/.openclaw/.env"
@@ -72,6 +74,7 @@ echo "[agentsmith] .env written with $(grep -c '=' "$ENV_PATH" || echo 0) key(s)
 # SOCKS5 residential proxy for WhatsApp — routes all outgoing TCP through
 # a residential IP so WhatsApp doesn't reject the datacenter IP.
 # Set SOCKS5_PROXY_URL=socks5://user:pass@host:port in Railway env vars.
+echo "[agentsmith] entering proxy section, SOCKS5_PROXY_URL=${SOCKS5_PROXY_URL:+SET}"
 if [ -n "$SOCKS5_PROXY_URL" ]; then
   # Parse SOCKS5 URL with pure bash — no node -e file-writing needed
   PROXY_BODY="${SOCKS5_PROXY_URL#*://}"
@@ -82,19 +85,34 @@ if [ -n "$SOCKS5_PROXY_URL" ]; then
   PROXY_USER="${PROXY_CREDS%%:*}"
   PROXY_PASS="${PROXY_CREDS#*:}"
 
+  # proxychains4 requires an IP address for the first proxy in the chain
+  PROXY_IP=$(getent hosts "$PROXY_HOST" | awk '{print $1; exit}')
+  if [ -z "$PROXY_IP" ]; then
+    echo "[agentsmith] ERROR: could not resolve $PROXY_HOST to IP" >&2
+    PROXY_IP="$PROXY_HOST"
+  fi
+
   cat > /etc/proxychains4.conf <<PROXYEOF
 strict_chain
-proxy_dns
 quiet_mode
 tcp_read_time_out 15000
 tcp_connect_time_out 10000
 
 [ProxyList]
-socks5 $PROXY_HOST $PROXY_PORT $PROXY_USER $PROXY_PASS
+socks5 $PROXY_IP $PROXY_PORT $PROXY_USER $PROXY_PASS
 PROXYEOF
 
-  echo "[agentsmith] SOCKS5 proxy configured: ${PROXY_HOST}:${PROXY_PORT}"
-  GATEWAY_CMD="proxychains4 openclaw gateway"
+  echo "[agentsmith] SOCKS5 proxy configured: ${PROXY_IP}:${PROXY_PORT} (${PROXY_HOST})"
+
+  # Quick connectivity test — verify the proxy actually works before starting
+  echo "[agentsmith] Testing proxy connectivity..."
+  if proxychains4 curl -sf --max-time 10 -o /dev/null -w "%{http_code}" https://web.whatsapp.com 2>&1; then
+    echo "[agentsmith] Proxy verified, starting with proxychains"
+    GATEWAY_CMD="proxychains4 openclaw gateway"
+  else
+    echo "[agentsmith] WARNING: Proxy test failed, starting WITHOUT proxy"
+    GATEWAY_CMD="openclaw gateway"
+  fi
 else
   echo "[agentsmith] No SOCKS5 proxy (SOCKS5_PROXY_URL not set)"
   GATEWAY_CMD="openclaw gateway"
