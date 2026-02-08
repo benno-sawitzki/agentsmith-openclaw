@@ -1,0 +1,23 @@
+{
+  "gateway": {
+    "port": "${PORT:-3000}",
+    "auth": {
+      "token": "${OPENCLAW_GATEWAY_TOKEN}"
+    },
+    "http": {
+      "endpoints": {
+        "chatCompletions": { "enabled": true }
+      }
+    }
+  },
+  "workspace": "/data/workspace",
+  "channels": {
+    "telegram": {
+      "enabled": "${TELEGRAM_ENABLED:-false}",
+      "token": "${TELEGRAM_BOT_TOKEN}"
+    },
+    "whatsapp": {
+      "enabled": "${WHATSAPP_ENABLED:-false}"
+    }
+  }
+}
