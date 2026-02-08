@@ -4,7 +4,7 @@
 FROM node:22-slim AS base
 
 # Pin the OpenClaw version — bump this when you've tested a new release
-ENV OPENCLAW_VERSION=2026.1.30
+ENV OPENCLAW_VERSION=2026.2.6-3
 
 # node:22-slim doesn't ship git; openclaw needs it for git-based deps
 # Rewrite SSH git URLs to HTTPS so we don't need SSH keys in the image
