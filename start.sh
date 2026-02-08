@@ -4,6 +4,9 @@ set -e
 CONFIG_PATH="/data/openclaw.json"
 SOUL_PATH="/data/workspace/SOUL.md"
 
+# Ensure subdirectories exist — Railway volume mount wipes build-time dirs
+mkdir -p /data/workspace /data/.openclaw
+
 # Write openclaw config from env var (pushed by Agent Smith on provision/sync)
 # Falls back to the default baked into the image
 if [ -n "$OPENCLAW_CONFIG_JSON" ]; then
