@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "[agentsmith] start.sh v3 (2026-02-08 19:45)"
+echo "[agentsmith] start.sh v4 (2026-02-08 21:10)"
 
 CONFIG_PATH="/data/.openclaw/openclaw.json"
 SOUL_PATH="/data/workspace/SOUL.md"
@@ -71,13 +71,15 @@ fi
 } > "$ENV_PATH"
 echo "[agentsmith] .env written with $(grep -c '=' "$ENV_PATH" || echo 0) key(s)"
 
-# SOCKS5 residential proxy for WhatsApp — routes all outgoing TCP through
+# Residential proxy for WhatsApp — routes all outgoing TCP through
 # a residential IP so WhatsApp doesn't reject the datacenter IP.
-# Set SOCKS5_PROXY_URL=socks5://user:pass@host:port in Railway env vars.
-echo "[agentsmith] entering proxy section, SOCKS5_PROXY_URL=${SOCKS5_PROXY_URL:+SET}"
-if [ -n "$SOCKS5_PROXY_URL" ]; then
-  # Parse SOCKS5 URL with pure bash — no node -e file-writing needed
-  PROXY_BODY="${SOCKS5_PROXY_URL#*://}"
+# Set PROXY_URL=http://user:pass@host:port in Railway env vars.
+# Supports http:// (Bright Data) and socks5:// protocols.
+echo "[agentsmith] entering proxy section, PROXY_URL=${PROXY_URL:+SET}"
+if [ -n "$PROXY_URL" ]; then
+  # Parse proxy URL: scheme://user:pass@host:port
+  PROXY_SCHEME="${PROXY_URL%%://*}"
+  PROXY_BODY="${PROXY_URL#*://}"
   PROXY_CREDS="${PROXY_BODY%%@*}"
   PROXY_HOSTPORT="${PROXY_BODY#*@}"
   PROXY_HOST="${PROXY_HOSTPORT%%:*}"
@@ -85,36 +87,49 @@ if [ -n "$SOCKS5_PROXY_URL" ]; then
   PROXY_USER="${PROXY_CREDS%%:*}"
   PROXY_PASS="${PROXY_CREDS#*:}"
 
-  # proxychains4 requires an IP address for the first proxy in the chain
+  echo "[agentsmith] Proxy: ${PROXY_SCHEME}://${PROXY_HOST}:${PROXY_PORT} (user=${PROXY_USER:0:10}...)"
+
+  # Resolve hostname to IP for proxychains
   PROXY_IP=$(getent hosts "$PROXY_HOST" | awk '{print $1; exit}')
   if [ -z "$PROXY_IP" ]; then
-    echo "[agentsmith] ERROR: could not resolve $PROXY_HOST to IP" >&2
+    echo "[agentsmith] WARNING: could not resolve $PROXY_HOST, using hostname" >&2
     PROXY_IP="$PROXY_HOST"
   fi
 
+  # Map URL scheme to proxychains type
+  case "$PROXY_SCHEME" in
+    http|https) PC_TYPE="http" ;;
+    socks5)     PC_TYPE="socks5" ;;
+    socks4)     PC_TYPE="socks4" ;;
+    *)          echo "[agentsmith] ERROR: unsupported proxy scheme: $PROXY_SCHEME"; PC_TYPE="http" ;;
+  esac
+
   cat > /etc/proxychains4.conf <<PROXYEOF
 strict_chain
-quiet_mode
 tcp_read_time_out 15000
 tcp_connect_time_out 10000
 
 [ProxyList]
-socks5 $PROXY_IP $PROXY_PORT $PROXY_USER $PROXY_PASS
+$PC_TYPE $PROXY_IP $PROXY_PORT $PROXY_USER $PROXY_PASS
 PROXYEOF
 
-  echo "[agentsmith] SOCKS5 proxy configured: ${PROXY_IP}:${PROXY_PORT} (${PROXY_HOST})"
+  echo "[agentsmith] proxychains4 configured: ${PC_TYPE} ${PROXY_IP}:${PROXY_PORT}"
 
-  # Quick connectivity test — verify the proxy actually works before starting
-  echo "[agentsmith] Testing proxy connectivity..."
-  if proxychains4 curl -sf --max-time 10 -o /dev/null -w "%{http_code}" https://web.whatsapp.com 2>&1; then
-    echo "[agentsmith] Proxy verified, starting with proxychains"
+  # Quick connectivity test — first with curl native proxy, then proxychains
+  echo "[agentsmith] Testing proxy connectivity (direct)..."
+  CURL_PROXY_RESULT=$(curl -sf --max-time 15 --proxy "${PROXY_SCHEME}://${PROXY_HOST}:${PROXY_PORT}" --proxy-user "${PROXY_USER}:${PROXY_PASS}" -o /dev/null -w "%{http_code}" https://web.whatsapp.com 2>&1) || true
+  echo "[agentsmith] Direct proxy test result: ${CURL_PROXY_RESULT}"
+
+  echo "[agentsmith] Testing proxy connectivity (proxychains)..."
+  if proxychains4 curl -sf --max-time 15 -o /dev/null -w "%{http_code}" https://web.whatsapp.com 2>&1; then
+    echo "[agentsmith] Proxychains test OK, starting with proxychains"
     GATEWAY_CMD="proxychains4 openclaw gateway"
   else
-    echo "[agentsmith] WARNING: Proxy test failed, starting WITHOUT proxy"
+    echo "[agentsmith] WARNING: Proxychains test failed, starting WITHOUT proxy"
     GATEWAY_CMD="openclaw gateway"
   fi
 else
-  echo "[agentsmith] No SOCKS5 proxy (SOCKS5_PROXY_URL not set)"
+  echo "[agentsmith] No proxy configured (PROXY_URL not set)"
   GATEWAY_CMD="openclaw gateway"
 fi
 
