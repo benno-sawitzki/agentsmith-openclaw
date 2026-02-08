@@ -1,6 +1,7 @@
 {
   "gateway": {
     "mode": "local",
+    "bind": "lan",
     "port": "${PORT:-8080}",
     "auth": {
       "token": "${OPENCLAW_GATEWAY_TOKEN}"
