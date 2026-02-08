@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
 # Keep source in /opt/openclaw since npm install -g doesn't work from pnpm workspaces
 RUN npm install -g pnpm \
     && git clone --branch fix/4686-whatsapp-timeout --depth 1 https://github.com/battman21/openclaw.git /opt/openclaw \
-    && cd /opt/openclaw && pnpm install && pnpm run build \
+    && cd /opt/openclaw && pnpm install && pnpm run build && pnpm ui:build \
     && chmod +x dist/entry.js && ln -sf /opt/openclaw/dist/entry.js /usr/local/bin/openclaw \
     && npm cache clean --force
 
