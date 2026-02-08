@@ -14,19 +14,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
 # Install openclaw globally at a locked version
 RUN npm install -g openclaw@${OPENCLAW_VERSION} && npm cache clean --force
 
-# Create a non-root user
-RUN groupadd -r openclaw && useradd -r -g openclaw -m openclaw
-
 # /data is the Railway Volume mount point — persists across redeploys
-RUN mkdir -p /data/workspace /data/.openclaw && chown -R openclaw:openclaw /data
+# Note: Railway mounts the volume at runtime as root, so build-time chown
+# has no effect. We run as root since it's a single-purpose container.
+RUN mkdir -p /data/workspace /data/.openclaw
 
 WORKDIR /app
 COPY start.sh ./
 COPY openclaw.json ./openclaw.json.default
 COPY workspace/SOUL.md ./workspace/SOUL.md.default
-RUN chmod +x start.sh && chown -R openclaw:openclaw /app
-
-USER openclaw
+RUN chmod +x start.sh
 
 # OpenClaw state and workspace live on the persistent volume
 ENV OPENCLAW_STATE_DIR=/data/.openclaw
