@@ -8,7 +8,7 @@ ENV OPENCLAW_VERSION=2026.2.6-3
 
 # node:22-slim doesn't ship git; openclaw needs it for git-based deps
 # Rewrite SSH git URLs to HTTPS so we don't need SSH keys in the image
-RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates proxychains4 && rm -rf /var/lib/apt/lists/* \
     && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 
 # Install openclaw globally at a locked version
@@ -23,6 +23,7 @@ WORKDIR /app
 COPY start.sh ./
 COPY openclaw.json ./openclaw.json.default
 COPY workspace/SOUL.md ./workspace/SOUL.md.default
+COPY proxychains.conf /etc/proxychains4.conf
 RUN chmod +x start.sh
 
 # OpenClaw state and workspace live on the persistent volume

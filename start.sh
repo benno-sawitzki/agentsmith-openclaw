@@ -69,6 +69,32 @@ fi
 } > "$ENV_PATH"
 echo "[agentsmith] .env written with $(grep -c '=' "$ENV_PATH" || echo 0) key(s)"
 
+# SOCKS5 residential proxy for WhatsApp — routes all outgoing TCP through
+# a residential IP so WhatsApp doesn't reject the datacenter IP.
+# Set SOCKS5_PROXY_URL=socks5://user:pass@host:port in Railway env vars.
+PROXYCHAINS_CONF="/etc/proxychains4.conf"
+
+if [ -n "$SOCKS5_PROXY_URL" ]; then
+  node -e '
+    const u = new URL(process.env.SOCKS5_PROXY_URL);
+    const host = u.hostname, port = u.port || "1080";
+    const user = u.username, pass = u.password;
+    let line = `socks5 ${host} ${port}`;
+    if (user && pass) line += ` ${decodeURIComponent(user)} ${decodeURIComponent(pass)}`;
+    const conf = [
+      "strict_chain", "proxy_dns", "quiet_mode",
+      "tcp_read_time_out 15000", "tcp_connect_time_out 10000",
+      "", "[ProxyList]", line, ""
+    ].join("\n");
+    require("fs").writeFileSync(process.env.PROXYCHAINS_CONF, conf);
+  '
+  echo "[agentsmith] SOCKS5 proxy configured: $(node -e "const u=new URL(process.env.SOCKS5_PROXY_URL);console.log(u.hostname+':'+u.port)")"
+  GATEWAY_CMD="proxychains4 openclaw gateway"
+else
+  echo "[agentsmith] No SOCKS5 proxy (SOCKS5_PROXY_URL not set)"
+  GATEWAY_CMD="openclaw gateway"
+fi
+
 echo "[agentsmith] Starting OpenClaw gateway (version: ${OPENCLAW_VERSION:-unknown})"
 
-exec openclaw gateway
+exec $GATEWAY_CMD
