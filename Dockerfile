@@ -13,10 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
     && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 
 # Build OpenClaw from PR #8409 branch (pairing code auth)
+# Keep source in /opt/openclaw since npm install -g doesn't work from pnpm workspaces
 RUN npm install -g pnpm \
-    && git clone --branch fix/4686-whatsapp-timeout --depth 1 https://github.com/battman21/openclaw.git /tmp/openclaw \
-    && cd /tmp/openclaw && pnpm install && pnpm run build && npm install -g . \
-    && cd / && rm -rf /tmp/openclaw && npm cache clean --force
+    && git clone --branch fix/4686-whatsapp-timeout --depth 1 https://github.com/battman21/openclaw.git /opt/openclaw \
+    && cd /opt/openclaw && pnpm install && pnpm run build \
+    && chmod +x dist/entry.js && ln -sf /opt/openclaw/dist/entry.js /usr/local/bin/openclaw \
+    && npm cache clean --force
 
 # /data is the Railway Volume mount point — persists across redeploys
 # Note: Railway mounts the volume at runtime as root, so build-time chown
