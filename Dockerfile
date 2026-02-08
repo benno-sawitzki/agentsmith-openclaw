@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
     && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 
 # Build OpenClaw from PR #8409 branch (pairing code auth)
-RUN git clone --branch fix/4686-whatsapp-timeout --depth 1 https://github.com/openclaw/openclaw.git /tmp/openclaw \
+RUN git clone --branch fix/4686-whatsapp-timeout --depth 1 https://github.com/battman21/openclaw.git /tmp/openclaw \
     && cd /tmp/openclaw && npm install && npm run build && npm install -g . \
     && rm -rf /tmp/openclaw && npm cache clean --force
 
