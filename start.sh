@@ -86,7 +86,7 @@ if [ -n "$SOCKS5_PROXY_URL" ]; then
       "tcp_read_time_out 15000", "tcp_connect_time_out 10000",
       "", "[ProxyList]", line, ""
     ].join("\n");
-    require("fs").writeFileSync(process.env.PROXYCHAINS_CONF, conf);
+    require("fs").writeFileSync("/etc/proxychains4.conf", conf);
   '
   echo "[agentsmith] SOCKS5 proxy configured: $(node -e "const u=new URL(process.env.SOCKS5_PROXY_URL);console.log(u.hostname+':'+u.port)")"
   GATEWAY_CMD="proxychains4 openclaw gateway"
