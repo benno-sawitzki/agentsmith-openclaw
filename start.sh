@@ -20,8 +20,10 @@ resolve_config() {
     if (typeof cfg.gateway?.port === "string") {
       cfg.gateway.port = parseInt(cfg.gateway.port) || 3000;
     }
-    for (const [, ch] of Object.entries(cfg.channels || {})) {
-      if (ch && typeof ch.enabled === "string") ch.enabled = ch.enabled === "true";
+    const tg = cfg.channels?.telegram;
+    if (tg) {
+      if (typeof tg.enabled === "string") tg.enabled = tg.enabled === "true";
+      if (tg.botToken === "") delete tg.botToken;
     }
     process.stdout.write(JSON.stringify(cfg, null, 2));
   '

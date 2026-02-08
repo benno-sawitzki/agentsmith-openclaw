@@ -10,14 +10,13 @@
       }
     }
   },
-  "workspace": "/data/workspace",
   "channels": {
     "telegram": {
       "enabled": "${TELEGRAM_ENABLED:-false}",
-      "token": "${TELEGRAM_BOT_TOKEN}"
+      "botToken": "${TELEGRAM_BOT_TOKEN}"
     },
     "whatsapp": {
-      "enabled": "${WHATSAPP_ENABLED:-false}"
+      "dmPolicy": "${WHATSAPP_DM_POLICY:-disabled}"
     }
   }
 }
