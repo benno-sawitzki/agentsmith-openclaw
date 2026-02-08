@@ -32,4 +32,4 @@ fi
 
 echo "[agentsmith] Starting OpenClaw gateway (version: ${OPENCLAW_VERSION:-unknown})"
 
-exec openclaw start --config "$CONFIG_PATH"
+exec openclaw gateway --config "$CONFIG_PATH"
