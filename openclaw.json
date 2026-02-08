@@ -6,6 +6,10 @@
     "auth": {
       "token": "${OPENCLAW_GATEWAY_TOKEN}"
     },
+    "controlUi": {
+      "enabled": true,
+      "allowInsecureAuth": true
+    },
     "http": {
       "endpoints": {
         "chatCompletions": { "enabled": true }
