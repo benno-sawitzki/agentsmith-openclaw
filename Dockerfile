@@ -7,7 +7,9 @@ FROM node:22-slim AS base
 ENV OPENCLAW_VERSION=2026.1.30
 
 # node:22-slim doesn't ship git; openclaw needs it for git-based deps
-RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+# Rewrite SSH git URLs to HTTPS so we don't need SSH keys in the image
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/* \
+    && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 
 # Install openclaw globally at a locked version
 RUN npm install -g openclaw@${OPENCLAW_VERSION} && npm cache clean --force
